@@ -1,96 +1,68 @@
-#include <Arduino.h>
-//buttons' pins
-const int centerButton = 4;
-const int leftButton = 3;
-const int rightButton = 2;
+#include "buttons.h"
+#include <TFT.h>  
+#include <SPI.h>
 
-// the current state of the center button
-int centerButtonState;
-// the current state of the left button
-int leftButtonState;
-// the current state of the right button
-int rightButtonState;
+#define cs   10
+#define dc   9
+#define rst  8
 
+TFT TFTscreen = TFT(cs, dc, rst);
 
-// the previous state of center button
-int lastCenterButtonState = LOW;
-// the previous state of left button
-int lastLeftButtonState = LOW;
-// the previous state of right button
-int lastRightButtonState = LOW;
+const byte interruptPin = 2;
+volatile byte state = LOW;
 
-// the last time the left button was toggled
-unsigned long lastCenterDebounceTime = 0;
-// the last time the left button was toggled
-unsigned long lastLeftDebounceTime = 0;
-// the last time the right button was toggled
-unsigned long lastRightDebounceTime = 0;
-// delay for debounce
-unsigned long debounceDelay = 50;
+//buttons
+Button left_button;
+Button center_button;
+Button right_button;
 
 void setup() {
+
+  //init buttons
+  left_button.init_button(3);
+  center_button.init_button(4);
+  right_button.init_button(2);
+  
   // set buttons as inputs
-  pinMode(centerButton, INPUT);
-  pinMode(leftButton, INPUT);
-  pinMode(rightButton, INPUT);
+  pinMode(left_button.pin, INPUT);
+  pinMode(center_button.pin, INPUT);
+  pinMode(right_button.pin, INPUT);
 
   // debug print
   Serial.begin(9600);
+
+  //lcd screen
+  //initialize the library
+  TFTscreen.begin();
+
+  // clear the screen with a black background
+  TFTscreen.background(0, 0, 0);
+  //set the text size
+  TFTscreen.setTextSize(2);
+
+  pinMode(interruptPin, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(interruptPin), blink, RISING);
 }
 
-void toggle_left_button() {
-  int reading = digitalRead(leftButton);
-
-  if (reading != lastLeftButtonState) {
-    lastLeftDebounceTime = millis();
-  }
-
-  if ((millis() - lastLeftDebounceTime) > debounceDelay) {
-    if (reading != leftButtonState) {
-      leftButtonState = reading;
-      if (leftButtonState == HIGH) {
-        Serial.print("left button is on\n");
-      }
-    }    
-  }
-  lastLeftButtonState = reading;
-}
-
-void toggle_center_button() {
-  int reading = digitalRead(centerButton);
-
-  if (reading != lastCenterButtonState) {
-    lastCenterDebounceTime = millis();
-  }
-
-  if ((millis() - lastCenterDebounceTime) > debounceDelay) {
-    if (reading != centerButtonState) {
-      centerButtonState = reading;
-      if (centerButtonState == HIGH) {
-        Serial.print("center button is on\n");
-      }
-    }    
-  }
-  lastCenterButtonState = reading;
-}
 
 void loop() {
-  toggle_center_button();
-  toggle_left_button();
+  //left_button.toggle_button();
+  //center_button.toggle_button();
+  //right_button.toggle_button();
+
   
+  // set a random font color
+  TFTscreen.stroke(random(0, 255),random(0, 255),random(0, 255));
+  
+  // print Hello, World! in the middle of the screen
+  TFTscreen.text("Hello, World!", 6, 57);
+  
+  // wait 200 miliseconds until change to next color
 
-  int readingRight = digitalRead(rightButton);
-  if (readingRight != lastRightButtonState) {
-    lastRightDebounceTime = millis();
-  }
+  
+}
 
-  if ((millis() - lastRightDebounceTime) > debounceDelay) {
-    if (readingRight != rightButtonState) {
-      rightButtonState = readingRight;
-      if (rightButtonState == HIGH) {
-        Serial.print("right button is on\n");
-      }
-    }
-  }
-  lastRightButtonState = readingRight;
+void blink() {
+  Serial.print(digitalRead(2));
+  Serial.println(random(0, 255));
 }
