@@ -2,7 +2,7 @@
 #include "PinChangeInt.h"
 
 // library used for lcd screen
-#include <TFT.h>  
+#include <TFT.h>
 #include <SPI.h>
 
 // defines and variables for control pins
@@ -35,7 +35,11 @@ TFT TFTscreen = TFT(cs, dc, rst);
 #define GAME_BEGINS 1
 #define GAME_STARTED 2
 volatile byte game_state;
-byte player_turn;
+byte player_switched;
+char *player_turn;
+
+//design defines
+#define PLAYER_TURN_X_POS 75
 
 //setup the screen
 void setup_lcd_screen() {
@@ -56,14 +60,14 @@ void setup() {
   // set interrupts for control buttons using PinChangeInt library
 
   // left button interrupt
-  //pinMode(LEFT_BUTTON_PIN, INPUT_PULLUP);
+  //  pinMode(LEFT_BUTTON_PIN, INPUT_PULLUP);
 
   // center button interrupt -> the only one used in game setup
-  //pinMode(CENTER_BUTTON_PIN, INPUT_PULLUP);
+  //  pinMode(CENTER_BUTTON_PIN, INPUT_PULLUP);
   PCintPort::attachInterrupt(CENTER_BUTTON_PIN, game_setup_interrupt, RISING);
 
   // right button interrupt
-  //pinMode(RIGHT_BUTTON_PIN, INPUT_PULLUP);
+  //  pinMode(RIGHT_BUTTON_PIN, INPUT_PULLUP);
 
   // set pins 2,3,4 as input
   DDRD = DDRD | B11100011;
@@ -73,16 +77,17 @@ void setup() {
 
   //game state
   game_state = GAME_INIT;
-  player_turn = 0;
+  player_turn = "0";
+  player_switched = 0;
 }
 
 
 void draw_lines() {
-  for(int i = 1 ; i <= 5 ; i++) {
+  for (int i = 1 ; i <= 5 ; i++) {
     TFTscreen.line(LEFT_CORNER_X, LEFT_CORNER_Y + INTERVAL_HEIGHT * i, LEFT_CORNER_X + RECT_WIDTH, LEFT_CORNER_Y + INTERVAL_HEIGHT * i);
   }
 
-  for(int i = 1 ; i <= 6 ; i++) {
+  for (int i = 1 ; i <= 6 ; i++) {
     TFTscreen.line(LEFT_CORNER_X + INTERVAL_WIDTH * i, LEFT_CORNER_Y, LEFT_CORNER_X + INTERVAL_WIDTH * i, LEFT_CORNER_Y + RECT_HEIGHT);
   }
 }
@@ -104,36 +109,52 @@ void loop() {
     PCintPort::attachInterrupt(CENTER_BUTTON_PIN, control_buttons_interrupt, RISING);
     PCintPort::attachInterrupt(RIGHT_BUTTON_PIN, control_buttons_interrupt, RISING);
     PCintPort::attachInterrupt(LEFT_BUTTON_PIN, control_buttons_interrupt, RISING);
+    TFTscreen.stroke(255, 255, 0);
+    TFTscreen.setTextSize(1);
+    TFTscreen.text("Player turn: ", 0, 0);
+    TFTscreen.text(player_turn, PLAYER_TURN_X_POS, 0);
+  }
+  
+  if (player_switched == 1) {
+    TFTscreen.background(0, 0, 0);
+    TFTscreen.rect(20, 30, RECT_WIDTH, RECT_HEIGHT);
+    TFTscreen.circle(0, 0, 2);
+    draw_lines();
+    TFTscreen.stroke(255, 255, 0);
+    TFTscreen.setTextSize(1);
+    player_turn[0] ^= 1;
+    TFTscreen.text("Player turn: ", 0, 0);
+    TFTscreen.text(player_turn, PLAYER_TURN_X_POS, 0);
+    player_switched = 0;
   }
 }
 
 
 void control_buttons_interrupt() {
   if ((PIND & (1 << PD4)) != 0) {
-      if(millis() - right_button_last_debounce_time >= 150) {
-        right_button_last_debounce_time = millis();
-        Serial.println(4);
-      }
+    if (millis() - right_button_last_debounce_time >= 150) {
+      right_button_last_debounce_time = millis();
+    }
   } else if ((PIND & (1 << PD3)) != 0) {
-      if(millis() - center_button_last_debounce_time >= 150) {
-        center_button_last_debounce_time = millis();
-        Serial.println(3);
-      }
+    if (millis() - center_button_last_debounce_time >= 150) {
+      center_button_last_debounce_time = millis();
+      //switch player
+      player_switched = 1;
+    }
   } else if ((PIND & (1 << PD2)) != 0) {
-      if(millis() - left_button_last_debounce_time >= 150) {
-        left_button_last_debounce_time = millis();
-        Serial.println(2);
-      }
+    if (millis() - left_button_last_debounce_time >= 150) {
+      left_button_last_debounce_time = millis();
+    }
   }
 }
 
 void game_setup_interrupt() {
   if ((PIND & (1 << PD3)) != 0) {
-      if(millis() - center_button_last_debounce_time >= 150) {
-        center_button_last_debounce_time = millis();
-        if (game_state == GAME_INIT) {
-            game_state = GAME_BEGINS;
-        }
+    if (millis() - center_button_last_debounce_time >= 150) {
+      center_button_last_debounce_time = millis();
+      if (game_state == GAME_INIT) {
+        game_state = GAME_BEGINS;
       }
+    }
   }
 }
