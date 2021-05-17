@@ -157,8 +157,52 @@ void move_circle() {
     }
 }
 
+void(* resetFunc) (void) = 0;
+
+void end_game_interrupt() {
+  if ((PIND & (1 << PD3)) != 0) {
+    if (millis() - center_button_last_debounce_time >= 150) {
+      center_button_last_debounce_time = millis();
+      Serial.print("dupa castig");
+      resetFunc();
+    }
+  }
+}
+
+void game_ended_with_victory(byte winner) {
+
+  TFTscreen.stroke(0, 0, 0);
+  TFTscreen.circle(SELECTOR_START_X + (circle_position * INTERVAL_WIDTH), SELECTOR_START_Y, 5);
+  TFTscreen.text("Player turn: ", 0, 0);
+  TFTscreen.text(player_turn, PLAYER_TURN_TEXT_X_POS, 0);
+  TFTscreen.stroke(0, 255, 0);
+  TFTscreen.text( "The winner is: " , 5, SELECTOR_START_Y - 10);
+  char* text; 
+  if(winner == 1) {
+    TFTscreen.stroke(0, 0, 255);
+    text = "RED";
+  } else {
+    TFTscreen.stroke(0, 255, 255);
+    text = "YELLOW";
+  }
+    TFTscreen.text(text, 91, SELECTOR_START_Y - 10);
+  delay(4000);
+  
+  TFTscreen.background(red_background, green_background, blue_background);
+  PCintPort::detachInterrupt(CENTER_BUTTON);
+  PCintPort::attachInterrupt(CENTER_BUTTON, end_game_interrupt, RISING);
+  TFTscreen.stroke(0, 255, 0);
+  TFTscreen.setTextSize(2);
+  TFTscreen.text("Press green", 15, 50);
+  TFTscreen.text("to replay", 30, 80);
+}
+
 void occupy_element (int i, int j) {
-  game_table[i][j] = 1;
+  if(player_turn[0] == '0') {
+    game_table[i][j] = 1;
+  } else {
+    game_table[i][j] = 2;
+  }
   // draw the correspondent circle
   TFTscreen.circle(SELECTOR_START_X - INTERVAL_WIDTH * (3 - (circle_position + 3)),
                   SELECTOR_START_Y + INTERVAL_HEIGHT * (i + 1),
@@ -171,6 +215,13 @@ void occupy_element (int i, int j) {
   player_switched = 0;
   //reinitiate the circle selector
   clear_and_reinit_selector();
+
+  byte winner = connect4(6,7);
+
+  if (winner != 0) {
+    game_ended_with_victory(winner);
+  }
+  
 }
 
 void init_interrupts_for_game_start() {
@@ -180,6 +231,36 @@ void init_interrupts_for_game_start() {
   PCintPort::attachInterrupt(LEFT_BUTTON, control_buttons_interrupt, RISING);
 }
 
+
+byte connect4(byte lines, byte columns) {
+    int winner = 0;
+    for (byte i = 0; i < lines; i++) {
+        for (byte j = 0; j < columns; j++) {
+            char element = game_table[i][j];
+            // if the element is occupied
+            if (element != 0) {
+              // check match in line if j + 3 is not out of range
+              if (j + 3 < columns && element == game_table[i][j + 1]
+                && element == game_table[i][j + 2] && element == game_table[i][j + 3])
+                winner = element;
+              // check match in column if i + 3 is not out of rage
+              if (i + 3 < lines && element == game_table[i + 1][j]
+                  && element == game_table[i + 2][j] && element == game_table[i + 3][j])
+                  winner = element;
+              // check match in left diagonal
+              if (j >= 3 && i + 3 < lines && element == game_table[i + 1][j - 1]
+                  && element == game_table[i + 2][j - 2] && element == game_table[i + 3][j - 3])
+                  winner = element;
+              // check match in right diagonal
+              if (j + 3 < columns && i + 3 < lines && element == game_table[i + 1][j + 1]
+                  && element == game_table[i + 2][j + 2] && element == game_table[i + 3][j + 3])
+                  winner = element;
+            }
+        }
+    }
+
+  return winner;
+}
 
 void loop() {
   if (game_state == GAME_INIT) {
@@ -225,7 +306,7 @@ void loop() {
     for (int i = 0 ; i <= 5 ; i++) {
       set_color_by_player();
       // the element is occupied
-      if (game_table[i][circle_position + 3] == 1) {
+      if (game_table[i][circle_position + 3] != 0) {
         // it is not the first line, so it's another unoccupied element above
          if (i != 0) {
           occupy_element(i - 1, circle_position + 3);
