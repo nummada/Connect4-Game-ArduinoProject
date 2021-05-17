@@ -119,7 +119,10 @@ void setup() {
 
 void draw_lines() {
   for (int i = 1 ; i <= 5 ; i++) {
-    TFTscreen.line(LEFT_CORNER_X, LEFT_CORNER_Y + INTERVAL_HEIGHT * i, LEFT_CORNER_X + RECT_WIDTH, LEFT_CORNER_Y + INTERVAL_HEIGHT * i);
+    TFTscreen.line(LEFT_CORNER_X,
+                  LEFT_CORNER_Y + INTERVAL_HEIGHT * i,
+                  LEFT_CORNER_X + RECT_WIDTH,
+                  LEFT_CORNER_Y + INTERVAL_HEIGHT * i);
   }
 
   for (int i = 1 ; i <= 6 ; i++) {
@@ -195,6 +198,14 @@ void game_ended_with_victory(byte winner) {
   TFTscreen.setTextSize(2);
   TFTscreen.text("Press green", 15, 50);
   TFTscreen.text("to replay", 30, 80);
+  TFTscreen.stroke(0, 255, 0);
+  TFTscreen.stroke(255, 0, 0);
+  TFTscreen.line(112, 34, 120, 37);
+  TFTscreen.line(120, 37, 130, 37);
+  TFTscreen.line(130, 37, 138, 34);
+
+  TFTscreen.line(120, 25, 120, 28);
+  TFTscreen.line(130, 25, 130, 28);
 }
 
 void occupy_element (int i, int j) {
@@ -268,6 +279,14 @@ void loop() {
     TFTscreen.stroke(blue_font, green_font, red_font);
     TFTscreen.text("Press green", 15, 50);
     TFTscreen.text("to play", 40, 80);
+    TFTscreen.stroke(0, 255, 0);
+    TFTscreen.line(112, 34, 120, 37);
+    TFTscreen.line(120, 37, 130, 37);
+    TFTscreen.line(130, 37, 138, 34);
+
+    TFTscreen.line(120, 25, 120, 28);
+    TFTscreen.line(130, 25, 130, 28);
+    
   } else if (game_state == GAME_BEGINS) {
     //clear the first frame of the game, the game begins
     TFTscreen.background(blue_background, green_background, red_background);
